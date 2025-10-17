@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>PINKPON CAM 💖</title>
+  <link rel="icon" href="flower.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #ffe6f2 0%, #fff0f8 100%);
+      color: #ff4f8b;
+      text-align: center;
+      padding: 40px 0;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      font-family: 'Baloo 2', cursive;
+      color: #ff4f8b;
+      text-shadow: 0 2px 8px #ffc8e3;
+      margin-bottom: 20px;
+      font-size: 2.2rem;
+    }
+
+    #camera {
+      border: 4px solid #ff4f8b;
+      border-radius: 18px;
+      margin: 16px;
+      box-shadow: 0 6px 32px #ff4f8b55;
+      background: #fff;
+      transform: scaleX(-1); /* Mirror preview */
+      transition: filter 0.4s ease;
+    }
+
+    #photo {
+      display: none;
+      transform: scaleX(-1);
+    }
+
+    #controls { 
+      margin-top: 20px; 
+    }
+
+    button {
+      padding: 12px 24px;
+      margin: 0 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(90deg, #ff4f8b 0%, #ff95c5 100%);
+      color: #fff;
+      font-weight: bold;
+      box-shadow: 0 2px 10px #ff4f8b22;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    #countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 5rem;
+      font-weight: bold;
+      color: #ff4f8b;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      display: none;
+    }
+
+    .container {
+      position: relative;
+      display: inline-block;
+    }
+
+    #filterButtons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .filter-btn {
+      border: 2px solid #ffb5d1;
+      background: white;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      color: #ff4f8b;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(90deg, #ff4f8b, #ff95c5);
+      color: white;
+      border-color: #ff4f8b;
+      box-shadow: 0 2px 8px #ff8db877;
+    }
+
+    #preview {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .thumb {
+      width: 80px;
+      height: 100px;
+      object-fit: cover;
+      border: 3px solid #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Efek hujan love */
+    .heart {
+      position: fixed;
+      top: -10px;
+      color: #ff7aa8;
+      font-size: 18px;
+      animation: fall 6s linear forwards;
+      z-index: -1;
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>PINKPON CAM 💕</h1>
+
+  <div class="container">
+    <video id="camera" width="400" height="300" autoplay></video>
+    <canvas id="photo" width="400" height="300" style="display:none;"></canvas>
+    <div id="countdown">3</div>
+  </div>
+
+  <!-- Tombol Filter -->
+  <div id="filterButtons">
+    <button class="filter-btn active" data-filter="none">✨ Normal</button>
+    <button class="filter-btn" data-filter="grayscale(100%)">🖤 B&W</button>
+    <button class="filter-btn" data-filter="sepia(60%)">🌻 Vintage</button>
+    <button class="filter-btn" data-filter="hue-rotate(190deg) saturate(130%)">💙 Blue Wash</button>
+    <button class="filter-btn" data-filter="contrast(110%) brightness(105%) saturate(120%)">🌞 Bright</button>
+    <button class="filter-btn" data-filter="hue-rotate(-20deg) saturate(120%) brightness(105%)">🌸 Soft Pink</button>
+    <button class="filter-btn" data-filter="hue-rotate(50deg) brightness(95%) saturate(90%)">🌿 Green Calm</button>
+  </div>
+
+  <div id="controls">
+    <button id="capture">📸 Ambil Foto</button>
+    <button id="toFrame" disabled>➡️ Ke Frame</button>
+  </div>
+
+  <div id="preview"></div>
+
+  <audio id="shutterSound" src="https://www.soundjay.com/mechanical/camera-shutter-click-01.mp3" preload="auto"></audio>
+
+  <script>
+    const video = document.getElementById('camera');
+    const canvas = document.getElementById('photo');
+    const captureBtn = document.getElementById('capture');
+    const toFrameBtn = document.getElementById('toFrame');
+    const preview = document.getElementById('preview');
+    const countdown = document.getElementById('countdown');
+    const shutterSound = document.getElementById('shutterSound');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+
+    let photos = [];
+    let currentFilter = 'none';
+
+    // Hujan love
+    function createHeart() {
+      const heart = document.createElement('div');
+      heart.classList.add('heart');
+      heart.innerHTML = '💖';
+      heart.style.left = Math.random() * 100 + 'vw';
+      heart.style.animationDuration = 3 + Math.random() * 3 + 's';
+      document.body.appendChild(heart);
+      setTimeout(() => heart.remove(), 6000);
+    }
+    setInterval(createHeart, 200);
+
+    // Akses kamera
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => video.srcObject = stream)
+      .catch(err => alert('Tidak bisa akses kamera: ' + err));
+
+    // Ubah filter real-time
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.getAttribute('data-filter');
+        video.style.filter = currentFilter;
+      });
+    });
+
+    function takePhoto() {
+      const ctx = canvas.getContext('2d');
+      ctx.filter = currentFilter;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const dataURL = canvas.toDataURL("image/png");
+      photos.push(dataURL);
+      shutterSound.currentTime = 0; 
+      shutterSound.play();
+
+      const img = document.createElement("img");
+      img.src = dataURL;
+      img.className = "thumb";
+      preview.appendChild(img);
+
+      if (photos.length === 4) {
+        toFrameBtn.disabled = false;
+        captureBtn.disabled = true;
+      }
+    }
+
+    // Countdown sebelum ambil foto
+    captureBtn.onclick = () => {
+      if (photos.length >= 4) return;
+      let counter = 3;
+      countdown.textContent = counter;
+      countdown.style.display = "block";
+
+      const interval = setInterval(() => {
+        counter--;
+        if (counter > 0) {
+          countdown.textContent = counter;
+        } else {
+          clearInterval(interval);
+          countdown.style.display = "none";
+          takePhoto();
+        }
+      }, 1000);
+    };
+
+    // Ke halaman frame
+    toFrameBtn.onclick = () => {
+      localStorage.setItem("capturedPhotos", JSON.stringify(photos));
+      window.location.href = "frame.html";
+    };
+  </script>
+</body>
+</html>
